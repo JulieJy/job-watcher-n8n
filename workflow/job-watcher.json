@@ -1,0 +1,692 @@
+{
+  "name": "🔍Job Watcher",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1rYqdcfEI3ZciqrTIuEs6yPzKAQ0M017R4QS7uovzMR8",
+          "mode": "list",
+          "cachedResultName": "n8n - Job watcher - Companies",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rYqdcfEI3ZciqrTIuEs6yPzKAQ0M017R4QS7uovzMR8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Feuille 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rYqdcfEI3ZciqrTIuEs6yPzKAQ0M017R4QS7uovzMR8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -384,
+        -272
+      ],
+      "id": "90478a9c-f645-41b9-80a3-eb2b016a6664",
+      "name": "Load companies",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "your-id",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 14
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -608,
+        -272
+      ],
+      "id": "8334a1e1-ef70-4338-962e-0c65e04dc7c3",
+      "name": "Every day"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bf7b367f-82a5-450a-8c4f-a6265788c1cc",
+                    "leftValue": "={{ $('Load companies').item.json['job board provider'] }}",
+                    "rightValue": "teamtailor",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8199ec57-6b42-4112-82a5-e7451e32db62",
+                    "leftValue": "={{ $('Load companies').item.json['job board provider'] }}",
+                    "rightValue": "ashbyhq",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        -272
+      ],
+      "id": "5e2aa961-e51f-44ab-a612-408172185db5",
+      "name": "Route by ATS"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "for item in _items:\n    job = item[\"json\"]\n\n    # HTML de l'annonce\n    html = job.get(\"content_html\", \"\")\n    lower = html.lower()\n\n    # Company\n    company = \"Unknown\"\n    try:\n        company = job[\"_jobposting\"][\"hiringOrganization\"][\"name\"]\n    except:\n        pass\n\n    # Location\n    location = \"Unknown\"\n    try:\n        location = job[\"_jobposting\"][\"jobLocation\"][0][\"address\"][\"addressLocality\"]\n    except:\n        pass\n\n    # Remote policy\n    remote_policy = \"Unknown\"\n\n    if \"100 %\" in lower or \"100%\" in lower:\n        remote_policy = \"Remote\"\n    elif \"télétravail partiel\" in lower:\n        remote_policy = \"Hybrid\"\n    elif \"dans nos locaux\" in lower:\n        remote_policy = \"Onsite\"\n\n    # Employment type\n    employment_type = \"Unknown\"\n\n    if \"Type d'emploi :\" in html:\n        employment_type = html.split(\"Type d'emploi :\", 1)[1]\n        employment_type = employment_type.split(\"</p>\", 1)[0]\n        employment_type = employment_type.strip()\n\n    item[\"json\"] = {\n        \"company\": company,\n        \"title\": job.get(\"title\"),\n        \"location\": location,\n        \"remote_policy\": remote_policy,\n        \"employment_type\": employment_type,\n        \"url\": job.get(\"url\"),\n        \"published_at\": job.get(\"date_published\"),\n        \"source\": \"teamtailor\",\n    }\n\nreturn _items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -368
+      ],
+      "id": "c3190680-be1f-437f-86ef-106c5e8d4261",
+      "name": "Teamtailor - Extract Metadata"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9447c0d6-552c-4b51-89af-a373dfce8faa",
+              "name": "company",
+              "value": "={{ $('Load companies').item.json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "550b23d2-73c5-4fdc-80ef-d08d10caf177",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "6c3aa93d-a4ca-44e8-857b-57be64d184a1",
+              "name": "location",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "85bfcd3d-8166-4a05-9b5b-87bc77c8d2f5",
+              "name": "remote_policy",
+              "value": "={{ $json.remote_policy }}",
+              "type": "string"
+            },
+            {
+              "id": "a73fed2d-cc0c-4e10-9bf8-09069fdd32fc",
+              "name": "employment_type",
+              "value": "={{ $json.employment_type }}",
+              "type": "string"
+            },
+            {
+              "id": "650620c7-51d2-4eee-941e-422cfea187f4",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "27209036-ede7-4105-980b-07b0d7969d8b",
+              "name": "published_at",
+              "value": "={{ $json.published_at }}",
+              "type": "string"
+            },
+            {
+              "id": "bffefafa-1973-4c50-a830-f19537cad1a0",
+              "name": "source",
+              "value": "={{ $('Load companies').item.json['job board provider'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        -368
+      ],
+      "id": "fb00bcae-7532-4bc1-89cf-1fc647a6f40f",
+      "name": "Teamtailor - Normalize Jobs"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['job board url'] }}.json",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        -368
+      ],
+      "id": "7566c12d-61d4-402e-a497-6638b8de8b6e",
+      "name": "Teamtailor - Fetch Jobs"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        288,
+        -368
+      ],
+      "id": "1a461397-08c2-44a9-bdf1-11a3ac4513d6",
+      "name": "Teamtailor - Split Jobs"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.ashbyhq.com/posting-api/job-board/{{ $json.company }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        -176
+      ],
+      "id": "2af2bc79-2061-41d3-a17f-77edf1a9cd26",
+      "name": "Ashby - Fetch Jobs"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        288,
+        -176
+      ],
+      "id": "a6c5163e-9276-4f6a-a3de-398a12237e5d",
+      "name": "Ashby - Split Jobs"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9447c0d6-552c-4b51-89af-a373dfce8faa",
+              "name": "company",
+              "value": "={{ $('Load companies').item.json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "550b23d2-73c5-4fdc-80ef-d08d10caf177",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "6c3aa93d-a4ca-44e8-857b-57be64d184a1",
+              "name": "location",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "85bfcd3d-8166-4a05-9b5b-87bc77c8d2f5",
+              "name": "remote_policy",
+              "value": "={{ $json.workplaceType }}",
+              "type": "string"
+            },
+            {
+              "id": "a73fed2d-cc0c-4e10-9bf8-09069fdd32fc",
+              "name": "employment_type",
+              "value": "={{ $json.employmentType }}",
+              "type": "string"
+            },
+            {
+              "id": "650620c7-51d2-4eee-941e-422cfea187f4",
+              "name": "url",
+              "value": "={{ $json.jobUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "27209036-ede7-4105-980b-07b0d7969d8b",
+              "name": "published_at",
+              "value": "={{ $json.publishedAt }}",
+              "type": "string"
+            },
+            {
+              "id": "bffefafa-1973-4c50-a830-f19537cad1a0",
+              "name": "source",
+              "value": "={{ $('Load companies').item.json['job board provider'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        -176
+      ],
+      "id": "74f2e94f-cca4-449b-ba0a-add34804d6c4",
+      "name": "Ashby - Normalize Jobs"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        960,
+        -272
+      ],
+      "id": "62ff4e71-1cae-45d3-aff0-5c0acbf6b0a7",
+      "name": "Merge Jobs"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2265e51a-4b5f-48ce-9b7a-696f399cbf7c",
+              "leftValue": "={{ $json.published_at }}",
+              "rightValue": "={{ $now.minus({ days: 7 }) }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1184,
+        -272
+      ],
+      "id": "253d0d47-d006-4ce4-883e-1332d31cbd0f",
+      "name": "Keep Recent Jobs"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "PROFILE = [\n    \"software engineer\",\n    \"software developer\",\n    \"backend engineer\",\n    \"back-end engineer\",\n    \"backend developer\",\n    \"back-end developer\",\n    \"python engineer\",\n    \"python developer\",\n    \"fullstack engineer\",\n    \"full-stack engineer\",\n    \"fullstack developer\",\n    \"full-stack developer\",\n]\n\nfor item in _items:\n    title = item[\"json\"][\"title\"].lower()\n\n    item[\"json\"][\"is_job_matching_profile\"]  = any(k in title for k in PROFILE)\n\nreturn _items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        -272
+      ],
+      "id": "00f4adfc-8593-481a-a6c7-6ec809f7a408",
+      "name": "Evaluate Job Relevance"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b7348acd-fc97-4981-aba3-a1acac9122d1",
+              "leftValue": "={{ $json.is_job_matching_profile }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1632,
+        -272
+      ],
+      "id": "de2f46e6-54d9-48a6-89c1-5d1854ee6dad",
+      "name": "Keep Matching Jobs"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2080,
+        -272
+      ],
+      "id": "04d5b740-8ed1-4d98-8a6c-cfd9f957b222",
+      "name": "Send Email",
+      "webhookId": "1ba98d68-8bd2-4c89-9187-8886637ff167",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "your-id",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = $input.all();\n\nif (jobs.length === 0) {\n  return [];\n}\n\nlet html = `\n<h2>🔍 ${jobs.length} nouvelle(s) offre(s)</h2>\n<p>Voici les offres correspondant à ton profil.</p>\n`;\n\nfor (const job of jobs) {\n  html += `\n  <div style=\"\n    border:1px solid #ddd;\n    border-radius:8px;\n    padding:16px;\n    margin-bottom:16px;\n  \">\n    <h3 style=\"margin-top:0\">${job.json.title}</h3>\n\n    <p>\n      <strong>${job.json.company}</strong><br>\n      📍 ${job.json.location}<br>\n      🏠 ${job.json.remote_policy}<br>\n      💼 ${job.json.employment_type}\n    </p>\n\n    <p>\n      <a href=\"${job.json.url}\">Voir l'offre →</a>\n    </p>\n  </div>\n  `;\n}\n\nreturn [\n  {\n    json: {\n      subject: `🔍 ${jobs.length} nouvelle(s) offre(s) trouvée(s)`,\n      html,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        -272
+      ],
+      "id": "8d54aa39-db41-4422-959a-7d8cc07a27f9",
+      "name": "Build Email"
+    },
+    {
+      "parameters": {
+        "content": "## Teamtailor\n\nFetch jobs from Teamtailor JSON feeds and normalize them into the common job schema.",
+        "width": 288,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        -544
+      ],
+      "typeVersion": 1,
+      "id": "1bf3d5b3-5e99-4de5-83bd-af79ce0abf09",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Ashby\n\nFetch jobs from the Ashby API and normalize them into the common job schema.",
+        "width": 288,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "abe1942e-7dbc-4969-a522-3afc44cb0964",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Common pipeline\n\nMerge results from all providers, keep recent and relevant jobs, then send a daily email summary.",
+        "width": 320,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "bb3c8350-5aa1-4752-ac21-492412f192b1",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Load companies": {
+      "main": [
+        [
+          {
+            "node": "Route by ATS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every day": {
+      "main": [
+        [
+          {
+            "node": "Load companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by ATS": {
+      "main": [
+        [
+          {
+            "node": "Teamtailor - Fetch Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ashby - Fetch Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teamtailor - Extract Metadata": {
+      "main": [
+        [
+          {
+            "node": "Teamtailor - Normalize Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teamtailor - Normalize Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teamtailor - Fetch Jobs": {
+      "main": [
+        [
+          {
+            "node": "Teamtailor - Split Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teamtailor - Split Jobs": {
+      "main": [
+        [
+          {
+            "node": "Teamtailor - Extract Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ashby - Fetch Jobs": {
+      "main": [
+        [
+          {
+            "node": "Ashby - Split Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ashby - Split Jobs": {
+      "main": [
+        [
+          {
+            "node": "Ashby - Normalize Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ashby - Normalize Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge Jobs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Jobs": {
+      "main": [
+        [
+          {
+            "node": "Keep Recent Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Recent Jobs": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Job Relevance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Job Relevance": {
+      "main": [
+        [
+          {
+            "node": "Keep Matching Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Matching Jobs": {
+      "main": [
+        [
+          {
+            "node": "Build Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "eb503f41-0ef6-4222-9543-e3606c249851",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "instance-id"
+  },
+  "nodeGroups": [],
+  "id": "T7TyrZx5S426oAsE",
+  "tags": []
+}
