@@ -54,9 +54,24 @@ The goal of this project is to explore **n8n**, workflow orchestration and build
 
 ---
 
+## 📋 Company configuration
+
+The companies to monitor are configured in a Google Sheet.
+
+Each row contains:
+- Company name
+- Career page URL
+- ATS provider
+
+Adding support for a new company only requires adding a new row, provided its ATS is already supported.
+
+![Company configuration](screenshots/company-config.PNG)
+
+---
+
 ## ⚙️ Workflow
 
-![Workflow](screenshots/job-watcher-workflow.png)
+![Workflow](screenshots/job-watcher-workflow.PNG)
 
 ---
 
@@ -81,7 +96,7 @@ The workflow is designed to be easily extended with additional ATS providers by 
 
 ## 📸 Example email
 
-![Workflow](screenshots/job-watcher-email.png)
+![Example email](screenshots/job-watcher-email.PNG)
 
 ---
 
